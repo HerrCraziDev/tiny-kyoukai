@@ -3,9 +3,9 @@ PROJECT_NAME = tiny-kyoukai
 BUILD_DIR = build
 
 CC = gcc
-CFLAGS = -std=c11
-LDFLAGS = 
-LIBS = gtk4
+CFLAGS = -std=c11 -g
+LDFLAGS = -g
+LIBS = gtk4 x11 gtk4-x11
 LDLIBS = $(shell if [ -n "$(LIBS)" ]; then pkg-config -libs $(LIBS); fi)
 INCLUDES = $(shell if [ -n "$(LIBS)" ]; then pkg-config -cflags $(LIBS); fi) -Isrc/includes
 
@@ -76,6 +76,7 @@ run: $(PROJECT_NAME)
 
 clean:
 	@rm -rif *.o *.gch
+	@rm -rif $(BUILD_DIR)/*.o $(BUILD_DIR)/*.gch
 
 clear: clean
 	@rm $(PROJECT_NAME)

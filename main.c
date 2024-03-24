@@ -20,6 +20,8 @@
 
 #include <gtk/gtk.h>
 #include <stdio.h>
+#include <X11/Xlib.h>
+#include <gdk/x11/gdkx.h>
 
 #include "test.h"
 #include "version.h"
@@ -35,11 +37,28 @@
 #define KYOU_ICON_NAME 	TINYKYOU_NAME
 #define KYOU_PATH		"kyoukai_peek.png"
 
+#define KYOU_WIN_WIDTH	250
+#define KYOU_WIN_HEIGHT	120
+
 typedef struct s_kyou_options {
 	char* szKyouPath;
 	bool  bAllowResize;
 	bool  bDrawFrame;
 } t_kyou_options;
+
+
+/*
+*------------------------------------------------------------------------------
+*	GTK devs are RETARDED greasy fucks (imagine being a gnome dev!)
+*------------------------------------------------------------------------------
+*/ 
+static void kyou_window_move(GtkWindow* window, uint16 x, uint16 y) {
+
+	Window   xw = gdk_x11_surface_get_xid( GDK_SURFACE(gtk_native_get_surface( GTK_NATIVE(window) )) );
+	Display *xd = gdk_x11_display_get_xdisplay( gtk_widget_get_display( GTK_WIDGET(window) ) );
+	/* I WILL move my windows no matter what gnometards think is bad! */
+	XMoveWindow( xd, xw, x, y );
+}
 
 
 /*
@@ -50,6 +69,7 @@ typedef struct s_kyou_options {
 
 /* On keypress */
 static bool kyou_keypress(GtkEventControllerKey* ev, guint keyval, guint keycode, GdkModifierType state, gpointer user_data) {
+
 	t_kyou_options* opt = (t_kyou_options*) user_data;
 	GtkWidget* widget = gtk_event_controller_get_widget( (GtkEventController*)ev );
 
@@ -65,10 +85,20 @@ static bool kyou_keypress(GtkEventControllerKey* ev, guint keyval, guint keycode
 			break;
 		
 		case ' ':
-		case 'f':
-			opt->bDrawFrame = !opt->bDrawFrame; /* Toggle frame */
+		case 'f': /* Toggle frame */
+			opt->bDrawFrame = !opt->bDrawFrame;
 			gtk_window_set_decorated(GTK_WINDOW(widget), opt->bDrawFrame);
 			break;
+
+		case 'm': /* Snap to bottom corner of current monitor */
+			GdkRectangle geom = {0};
+			gdk_monitor_get_geometry(
+				gdk_display_get_monitor_at_surface(
+					gdk_display_get_default(), 
+					GDK_SURFACE(gtk_native_get_surface( GTK_NATIVE(widget) ))
+				),
+				&geom );
+			kyou_window_move( GTK_WINDOW(widget), geom.x+geom.width-KYOU_WIN_WIDTH, geom.y+geom.height-KYOU_WIN_HEIGHT );
 	}
 
 	return true;
@@ -76,6 +106,7 @@ static bool kyou_keypress(GtkEventControllerKey* ev, guint keyval, guint keycode
 
 /* On click */
 static bool kyou_clicked(GtkGestureClick* ev, gint n_press, gdouble x, gdouble y, gpointer user_data) {
+
 	t_kyou_options* opt = (t_kyou_options*) user_data;
 	GtkWidget* widget = gtk_event_controller_get_widget( (GtkEventController*)ev );
 
@@ -93,12 +124,26 @@ static bool kyou_clicked(GtkGestureClick* ev, gint n_press, gdouble x, gdouble y
 	return true;
 }
 
+/* Move Kyoukai as soon as window is created */
+static void kyou_on_display( GtkWidget* widget, gpointer user_data ) {
+	GdkRectangle geom = {0};
+	GdkDisplay* disp = gdk_display_get_default();
+	GdkSurface* surf = GDK_SURFACE(gtk_native_get_surface( GTK_NATIVE(widget) ));
+	GdkMonitor* mon = gdk_x11_display_get_primary_monitor( disp );
+
+	gdk_monitor_get_geometry( mon, &geom );
+
+	kyou_window_move( GTK_WINDOW(widget), geom.x+geom.width-KYOU_WIN_WIDTH, geom.y+geom.height-KYOU_WIN_HEIGHT );
+}
+
+
 /*
 *------------------------------------------------------------------------------
 *	ACTIVATE - Main GTK setup function
 *------------------------------------------------------------------------------
 */
 static void activate(GtkApplication *app, gpointer user_data) {
+
 	GtkWidget *window;
 	GtkWidget *kyou;
 	GtkWidget *layout;
@@ -122,7 +167,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
 	/* Create window */
 	window = gtk_application_window_new(app);
 	gtk_window_set_title(GTK_WINDOW(window), "Tiny Kyoukai !");
-	gtk_window_set_default_size(GTK_WINDOW(window), 250, 120);
+	gtk_window_set_default_size(GTK_WINDOW(window), KYOU_WIN_WIDTH, KYOU_WIN_HEIGHT);
 
 	/* Load Kyoukai */
 	kyou = gtk_picture_new_for_filename( opt->szKyouPath );
@@ -157,6 +202,9 @@ static void activate(GtkApplication *app, gpointer user_data) {
 	/* Add everything to window */
 	gtk_window_set_child(GTK_WINDOW(window), layout);
 
+	/* Move Kyoukai as soon as the window is ready */
+	g_signal_connect( window, "show", kyou_on_display, opt);
+
 	/* Display window */
 	gtk_window_present(GTK_WINDOW(window));
 }
@@ -168,6 +216,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
 *------------------------------------------------------------------------------
 */
 int main(int argc, char **argv) {
+
 	GtkApplication *app;
 	int status;
 
