@@ -1,0 +1,4 @@
+
+
+
+char* sTestString = "Kyou";

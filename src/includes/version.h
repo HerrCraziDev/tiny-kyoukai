@@ -1,0 +1,15 @@
+
+
+#ifndef __TINYKYOU_VERSION__
+#define __TINYKYOU_VERSION__
+
+#include "types.h"
+
+
+#define TINYKYOU_VERSION_MAJOR	1
+#define TINYKYOU_VERSION_MINOR	0
+#define TINYKYOU_VERSION		_TOSTRING(TINYKYOU_VERSION_MAJOR)"."_TOSTRING(TINYKYOU_VERSION_MINOR)
+
+#define TINYKYOU_NAME			"tiny-kyoukai"
+
+#endif /* __TINYKYOU_VERSION__ */

@@ -1,0 +1,7 @@
+build
+*.o
+*.gch
+kyoutest
+tiny-kyoukai
+*.swp
+.vscode
