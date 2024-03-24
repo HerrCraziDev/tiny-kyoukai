@@ -25,3 +25,6 @@ None at the moment.
 
 **- It's not working ! -**
 skill issue
+
+**- Wayland support ? -**
+you should KILL yourself NOW (use xorg like any sane person, wayland is for coomers)
