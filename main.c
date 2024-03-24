@@ -51,13 +51,26 @@ typedef struct s_kyou_options {
 *------------------------------------------------------------------------------
 *	GTK devs are RETARDED greasy fucks (imagine being a gnome dev!)
 *------------------------------------------------------------------------------
-*/ 
-static void kyou_window_move(GtkWindow* window, uint16 x, uint16 y) {
+*/ /* Move Kyoukai */
+static void kyou_window_move(GtkWindow* window, int16 x, int16 y) {
 
 	Window   xw = gdk_x11_surface_get_xid( GDK_SURFACE(gtk_native_get_surface( GTK_NATIVE(window) )) );
 	Display *xd = gdk_x11_display_get_xdisplay( gtk_widget_get_display( GTK_WIDGET(window) ) );
 	/* I WILL move my windows no matter what gnometards think is bad! */
 	XMoveWindow( xd, xw, x, y );
+}
+
+/* Get Kyoukai's screen pos */
+static void kyou_get_pos(GtkWindow* window, int16* x, int16* y) {
+	XWindowAttributes xwa;
+
+	Window   xw = gdk_x11_surface_get_xid( GDK_SURFACE(gtk_native_get_surface( GTK_NATIVE(window) )) );
+	Display *xd = gdk_x11_display_get_xdisplay( gtk_widget_get_display( GTK_WIDGET(window) ) );
+	
+	XGetWindowAttributes( xd, xw, &xwa );
+	XTranslateCoordinates( xd, xwa.root, xw, 0, 0, &xwa.x, &xwa.y, &(Window){0} );
+	*x = -xwa.x;
+	*y = -xwa.y;
 }
 
 
@@ -71,7 +84,7 @@ static void kyou_window_move(GtkWindow* window, uint16 x, uint16 y) {
 static bool kyou_keypress(GtkEventControllerKey* ev, guint keyval, guint keycode, GdkModifierType state, gpointer user_data) {
 
 	t_kyou_options* opt = (t_kyou_options*) user_data;
-	GtkWidget* widget = gtk_event_controller_get_widget( (GtkEventController*)ev );
+	GtkWidget* widget = gtk_event_controller_get_widget( GTK_EVENT_CONTROLLER(ev) );
 
 #ifdef DEBUG
 	printf("Aloha~ '%c' (0x%X) %d %04X\n", (keyval & 0xFF00) ? ' ' : keyval, keyval, keycode, state);
@@ -108,24 +121,44 @@ static bool kyou_keypress(GtkEventControllerKey* ev, guint keyval, guint keycode
 static bool kyou_clicked(GtkGestureClick* ev, gint n_press, gdouble x, gdouble y, gpointer user_data) {
 
 	t_kyou_options* opt = (t_kyou_options*) user_data;
-	GtkWidget* widget = gtk_event_controller_get_widget( (GtkEventController*)ev );
+	GtkWidget* widget = gtk_event_controller_get_widget( GTK_EVENT_CONTROLLER(ev) );
+	uint8 btn = gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(ev));
 
 #ifdef DEBUG
-	printf("Aloha~ click %d at %f %f\n", n_press, x, y);
+	printf( "Aloha~ click %d at %f %f (btn: %d)\n", n_press, x, y, btn );
 #else
 	printf( "Nfu~ !\n" );
 #endif
+
+	/* Middle click -> exit window */
+	if ( btn == GDK_BUTTON_MIDDLE ) gtk_window_close(GTK_WINDOW(widget));
 
 	/* Double-click -> toggle frame */
 	if ( n_press > 1 ) {
 		opt->bDrawFrame = !opt->bDrawFrame;
 		gtk_window_set_decorated(GTK_WINDOW(widget), opt->bDrawFrame);
 	}
+
+	return true;
+}
+
+static bool kyou_mousemove(GtkGestureDrag* ev, gdouble x, gdouble y, gpointer user_data) {
+	
+	int16 px, py;
+	GtkWidget* widget = gtk_event_controller_get_widget( GTK_EVENT_CONTROLLER(ev) );
+
+	kyou_get_pos( GTK_WINDOW(widget), &px, &py);
+#ifdef DEBUG
+	printf("move (%f,%f)\n", x, y);
+	printf("pos: (%d,%d)\n", px, py);
+#endif
+	kyou_window_move( GTK_WINDOW(widget), px+x, py+y );
 	return true;
 }
 
 /* Move Kyoukai as soon as window is created */
 static void kyou_on_display( GtkWidget* widget, gpointer user_data ) {
+
 	GdkRectangle geom = {0};
 	GdkDisplay* disp = gdk_display_get_default();
 	GdkSurface* surf = GDK_SURFACE(gtk_native_get_surface( GTK_NATIVE(widget) ));
@@ -149,7 +182,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
 	GtkWidget *layout;
 	GtkIconTheme* icon_theme;
 	GtkEventController* ev_key;
-	GtkGesture* ev_clic;
+	GtkGesture* ev_clic, * ev_move;
 
 	t_kyou_options* opt = (t_kyou_options*) user_data;
 
@@ -179,8 +212,12 @@ static void activate(GtkApplication *app, gpointer user_data) {
 	g_signal_connect(ev_key, "key-pressed", G_CALLBACK(kyou_keypress), opt);
 	gtk_widget_add_controller(window, ev_key);
 	ev_clic = gtk_gesture_click_new();
-	g_signal_connect(ev_clic, "pressed", G_CALLBACK(kyou_clicked), opt);
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(ev_clic), AnyButton);
+	g_signal_connect(ev_clic, "released", G_CALLBACK(kyou_clicked), opt);
+	ev_move = gtk_gesture_drag_new();
+	g_signal_connect(ev_move, "drag-update", G_CALLBACK(kyou_mousemove), opt);
 	gtk_widget_add_controller(window, GTK_EVENT_CONTROLLER(ev_clic));
+	gtk_widget_add_controller(window, GTK_EVENT_CONTROLLER(ev_move));
 
 	/* Setup box layout aligned to bottom right, no padding */
 	layout = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -203,7 +240,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
 	gtk_window_set_child(GTK_WINDOW(window), layout);
 
 	/* Move Kyoukai as soon as the window is ready */
-	g_signal_connect( window, "show", kyou_on_display, opt);
+	g_signal_connect( window, "show", G_CALLBACK(kyou_on_display), opt);
 
 	/* Display window */
 	gtk_window_present(GTK_WINDOW(window));
