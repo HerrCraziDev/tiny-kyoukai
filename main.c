@@ -27,19 +27,32 @@
 #include "version.h"
 #include "types.h"
 
+
 /*
 *------------------------------------------------------------------------------
 *	Definitions
 *------------------------------------------------------------------------------
 */
 
-#define KYOU_ICON_PATH 	"ressources/"
-#define KYOU_ICON_NAME 	TINYKYOU_NAME
-#define KYOU_PATH		"kyoukai_peek.png"
+/* Bundle resources for portable build */
+#define KYOU_PORTABLE
 
+#ifdef KYOU_PORTABLE
+	#include "tiny-kyoukai.gresource.h"
+#endif
+
+/* Files and resources */
+#define KYOU_ICON_PATH 		"ressources/"
+#define KYOU_ICON_NAME 		TINYKYOU_NAME
+#define KYOU_IMAGE_PATH		"ressources/kyoukai_peek.png"
+#define KYOU_RESOURCES		"/dev/chenco/" TINYKYOU_NAME
+#define KYOU_IMAGE_RESOURCE	KYOU_RESOURCES "/kyoukai_peek.png"
+
+/* Window properties */
 #define KYOU_WIN_WIDTH	250
 #define KYOU_WIN_HEIGHT	120
 
+/* General options */
 typedef struct s_kyou_options {
 	char* szKyouPath;
 	bool  bAllowResize;
@@ -188,8 +201,11 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
 	/* Load icon theme (kyoukai icon) */
 	icon_theme = gtk_icon_theme_get_for_display(gdk_display_get_default());
+#ifndef KYOU_PORTABLE
 	gtk_icon_theme_add_search_path(icon_theme, KYOU_ICON_PATH );
-
+#else
+	gtk_icon_theme_add_resource_path(icon_theme, KYOU_RESOURCES );
+#endif
 	if ( !gtk_icon_theme_has_icon(icon_theme, KYOU_ICON_NAME) ) {
 		printf("WARN: Icon not found\n");
 	}
@@ -203,7 +219,11 @@ static void activate(GtkApplication *app, gpointer user_data) {
 	gtk_window_set_default_size(GTK_WINDOW(window), KYOU_WIN_WIDTH, KYOU_WIN_HEIGHT);
 
 	/* Load Kyoukai */
+#ifndef KYOU_PORTABLE
 	kyou = gtk_picture_new_for_filename( opt->szKyouPath );
+#else
+	kyou = gtk_picture_new_for_resource( KYOU_IMAGE_RESOURCE );
+#endif
 	gtk_picture_set_can_shrink(GTK_PICTURE(kyou), FALSE);
 	gtk_picture_set_content_fit(GTK_PICTURE(kyou), GTK_CONTENT_FIT_CONTAIN);
 
@@ -229,8 +249,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
 	/* Make window background transparent */
 	GtkCssProvider *provider = gtk_css_provider_new();
-	char* css = "window {background: transparent;}";
-	gtk_css_provider_load_from_string(provider, css);
+	gtk_css_provider_load_from_string(provider, "window {background: transparent;}");
 	gtk_style_context_add_provider_for_display(gdk_display_get_default(),GTK_STYLE_PROVIDER(provider),GTK_STYLE_PROVIDER_PRIORITY_USER);
 
 	/* Hide window frame and title bar */
@@ -258,7 +277,7 @@ int main(int argc, char **argv) {
 	int status;
 
 	t_kyou_options options = {
-		.szKyouPath = KYOU_PATH,
+		.szKyouPath = KYOU_IMAGE_PATH,
 		.bDrawFrame = false
 	};
 
@@ -272,7 +291,7 @@ int main(int argc, char **argv) {
 	status = g_application_run(G_APPLICATION(app), argc, argv);
 	g_object_unref(app);
 
-	printf( "\nO ancient darkness\n\t...primordial flame, what is it that lies\n\t...within your eyes?\nO bright light that" 	\
+	printf( "\nÔ ancient darkness,\n\t...primordial flame, what is it that lies\n\t...within your eyes?\nÔ bright light that" 	\
 					" splits the Heavens,\n\trumbling tremors that shake the Earth, what pulse beats\n\t...within your ears?\nMan" 	\
 					" walks adrift, a vessel of the Earth.\nI dance for thee, O God of Lightning!\nAh...Ryoku Sui..." 				\
 					"\n\tLet blood boil over!\n" );
