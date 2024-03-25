@@ -1,6 +1,7 @@
 <gresources>
   <gresource prefix="/dev/chenco/tiny-kyoukai">
     <file>kyoukai_peek.png</file>
+    <file>kyou.css</file>
     <file alias="icons/48x48/apps/tiny-kyoukai.png">hicolor/48x48/apps/tiny-kyoukai.png</file>
   </gresource>
 </gresources>

@@ -225,7 +225,10 @@ static void activate(GtkApplication *app, gpointer user_data) {
 	kyou = gtk_picture_new_for_resource( KYOU_IMAGE_RESOURCE );
 #endif
 	gtk_picture_set_can_shrink(GTK_PICTURE(kyou), FALSE);
-	gtk_picture_set_content_fit(GTK_PICTURE(kyou), GTK_CONTENT_FIT_CONTAIN);
+	if ( gtk_get_major_version() != 4 && gtk_get_minor_version() <= 8 )
+		gtk_picture_set_keep_aspect_ratio( GTK_PICTURE(kyou), true );	
+	else
+		gtk_picture_set_content_fit(GTK_PICTURE(kyou), GTK_CONTENT_FIT_CONTAIN);
 
 	/* Setup event listeners */
 	ev_key = gtk_event_controller_key_new();
@@ -249,7 +252,11 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
 	/* Make window background transparent */
 	GtkCssProvider *provider = gtk_css_provider_new();
+#ifndef KYOU_PORTABLE
 	gtk_css_provider_load_from_string(provider, "window {background: transparent;}");
+#else
+	gtk_css_provider_load_from_resource(provider, KYOU_RESOURCES "/kyou.css");
+#endif
 	gtk_style_context_add_provider_for_display(gdk_display_get_default(),GTK_STYLE_PROVIDER(provider),GTK_STYLE_PROVIDER_PRIORITY_USER);
 
 	/* Hide window frame and title bar */
