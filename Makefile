@@ -11,9 +11,17 @@ HEADER_DIR = $(SOURCE_DIR)/includes
 CC = gcc
 CFLAGS = -std=c11 -g
 LDFLAGS = -g
-LIBS = gtk4 x11 gtk4-x11
-LDLIBS = $(shell if [ -n "$(LIBS)" ]; then pkg-config -libs $(LIBS); fi)
-INCLUDES = $(shell if [ -n "$(LIBS)" ]; then pkg-config -cflags $(LIBS); fi) -I$(HEADER_DIR)
+LIBS = x11 gtk4 gtk4-x11
+STATIC_LIBS = 
+INCLUDES = -I$(HEADER_DIR)
+ifdef LIBS
+LDLIBS = $(shell pkg-config -libs $(LIBS))
+INCLUDES += $(shell pkg-config -cflags $(LIBS))
+endif
+ifdef STATIC_LIBS
+LDLIBS += -Wl,-Bstatic $(shell pkg-config -libs $(STATIC_LIBS)) -Wl,-Bdynamic
+INCLUDES += $(shell pkg-config -cflags $(STATIC_LIBS))
+endif
 
 SRC = $(shell find $(SOURCE_DIR)/ -type f -name '*.c') main.c
 NOM = $(basename $(notdir $(SRC)))
