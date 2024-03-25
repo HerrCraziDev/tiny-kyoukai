@@ -41,6 +41,12 @@
 	#include "tiny-kyoukai.gresource.h"
 #endif
 
+#if glib_minor_version < 74
+	#define APP_FLAGS		G_APPLICATION_FLAGS_NONE
+#else
+	#define APP_FLAGS 		G_APPLICATION_DEFAULT_FLAGS
+#endif
+
 /* Files and resources */
 #define KYOU_ICON_PATH 		"ressources/"
 #define KYOU_ICON_NAME 		TINYKYOU_NAME
@@ -225,10 +231,11 @@ static void activate(GtkApplication *app, gpointer user_data) {
 	kyou = gtk_picture_new_for_resource( KYOU_IMAGE_RESOURCE );
 #endif
 	gtk_picture_set_can_shrink(GTK_PICTURE(kyou), FALSE);
-	if ( gtk_get_major_version() != 4 && gtk_get_minor_version() <= 8 )
+#if ( gtk_minor_version < 8 )
 		gtk_picture_set_keep_aspect_ratio( GTK_PICTURE(kyou), true );	
-	else
+#else
 		gtk_picture_set_content_fit(GTK_PICTURE(kyou), GTK_CONTENT_FIT_CONTAIN);
+#endif
 
 	/* Setup event listeners */
 	ev_key = gtk_event_controller_key_new();
@@ -293,7 +300,7 @@ int main(int argc, char **argv) {
 			"-----------------------\n" );
 	printf( "~\e[31m羌瘣小ささ\e[0m!~\n" );
 
-	app = gtk_application_new("dev.chenco.tiny-kyoukai",G_APPLICATION_DEFAULT_FLAGS);
+	app = gtk_application_new("dev.chenco.tiny-kyoukai", APP_FLAGS);
 	g_signal_connect(app, "activate", G_CALLBACK(activate), &options);
 	status = g_application_run(G_APPLICATION(app), argc, argv);
 	g_object_unref(app);

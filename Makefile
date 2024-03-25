@@ -15,12 +15,12 @@ LIBS = x11 gtk4 gtk4-x11
 STATIC_LIBS = 
 INCLUDES = -I$(HEADER_DIR)
 ifdef LIBS
-LDLIBS = $(shell pkg-config -libs $(LIBS))
-INCLUDES += $(shell pkg-config -cflags $(LIBS))
+LDLIBS = $(shell pkg-config --libs $(LIBS))
+INCLUDES += $(shell pkg-config --cflags $(LIBS))
 endif
 ifdef STATIC_LIBS
-LDLIBS += -Wl,-Bstatic $(shell pkg-config -libs $(STATIC_LIBS)) -Wl,-Bdynamic
-INCLUDES += $(shell pkg-config -cflags $(STATIC_LIBS))
+LDLIBS += -Wl,-Bstatic $(shell pkg-config --libs $(STATIC_LIBS)) -Wl,-Bdynamic
+INCLUDES += $(shell pkg-config --cflags $(STATIC_LIBS))
 endif
 
 SRC = $(shell find $(SOURCE_DIR)/ -type f -name '*.c') main.c
@@ -157,7 +157,7 @@ clean:
 #	@rm -rif $(BUILD_DIR)/*.o $(BUILD_DIR)/*.gch
 
 clear: clean
-	@rm $(PROJECT_NAME) $(RES_INC)
+	@rm -if $(PROJECT_NAME) $(RES_INC)
 
 
 .PHONY: always init SUSSYBAKA test test-res clear clean run pregen-res
